@@ -1,0 +1,14 @@
+parseltongue/core/ast.py
+  h_a9f8615af8e22b 90,94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "248956b86efc68333a44248c41cf60d249fc38e4",
+  "prompts": {},
+  "humans": {
+    "h_a9f8615af8e22b": {
+      "author": "Artem Yushkovskiy <artem.yushkovskiy@deliveryhero.com>"
+    }
+  }
+}
