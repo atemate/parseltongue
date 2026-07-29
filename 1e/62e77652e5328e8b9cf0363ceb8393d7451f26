@@ -1,0 +1,27 @@
+parseltongue/core/ast.py
+  h_a9f8615af8e22b 95
+parseltongue/core/tests/test_ast.py
+  s_28d03be1f05b43::t_9f89bad651879b 199,201-203,205-211,213-224
+  h_a9f8615af8e22b 200,204,212
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "1e62e77652e5328e8b9cf0363ceb8393d7451f26",
+  "prompts": {},
+  "humans": {
+    "h_a9f8615af8e22b": {
+      "author": "Artem Yushkovskiy <artem.yushkovskiy@deliveryhero.com>"
+    }
+  },
+  "sessions": {
+    "s_28d03be1f05b43": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5f80d51d-67fb-4828-a8e0-018d5a4b6734",
+        "model": "claude-haiku-4-5-20251001"
+      },
+      "human_author": "Artem Yushkovskiy <artem.yushkovskiy@deliveryhero.com>"
+    }
+  }
+}
