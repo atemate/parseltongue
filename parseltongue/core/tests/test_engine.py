@@ -1142,6 +1142,29 @@ class TestConsistency(unittest.TestCase):
         issue_types = [i.type for i in report.issues]
         self.assertNotIn("diff_divergence", issue_types)
 
+    def test_unresolved_side_raises_naming_its_diff(self):
+        from ..engine import DiffKeyError
+
+        s = make_system()
+        quiet(s.set_fact, "a", 10, "test")
+        quiet(s.set_fact, "b", 10, "test")
+        quiet(s.register_diff, "d1", "a", "b")
+        quiet(s.register_diff, "d2", "a", "nowhere")
+        with self.assertRaises(DiffKeyError) as cm:
+            quiet(s.consistency)
+        self.assertIsInstance(cm.exception, KeyError)
+        self.assertEqual(cm.exception.diff, "d2")
+        self.assertIn("diff 'd2' (:replace a :with nowhere): Unknown symbol: nowhere", str(cm.exception))
+
+    def test_side_resolves_when_the_diff_is_checked(self):
+        """A side the env holds only at run time is a side like any other."""
+        s = make_system()
+        quiet(s.set_fact, "a", 10, "test")
+        quiet(s.register_diff, "d1", "a", "live")
+        s.engine.env[Symbol("live")] = 10
+        quiet(s.verify_manual, "a")
+        self.assertTrue(quiet(s.consistency).consistent)
+
     def test_diff_contamination_with_theorem_stays_issue(self):
         """Diffs contaminating theorems remain issues, not warnings."""
         s = make_system()

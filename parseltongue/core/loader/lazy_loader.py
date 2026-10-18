@@ -25,11 +25,11 @@ from typing import Any, Collection
 
 from ..ast import DirectiveNode, parse_directive, resolve_graph
 from ..atoms import Symbol
-from ..engine import _execute_directive
+from ..engine import DiffKeyError, _execute_directive
 from ..lang import Sentence
 from ..system import System
 from .fs import LoaderFS
-from .loader import Loader
+from .loader import DiffCheckError, Loader
 from .loader_morphism import LoaderAnnotatedDirective, ModuleSource
 
 log = logging.getLogger("parseltongue")
@@ -328,9 +328,18 @@ class LazyLoadResult:
             self._node_index_cache = {node.name: node for node in self._all_nodes if node.name}
         return self._node_index_cache
 
+    def _at_diff(self, error: DiffKeyError) -> DiffCheckError:
+        """The diff check's error, at the source location of the diff it was raised in."""
+        node = self._build_node_index().get(error.diff)
+        file, line = (node.source_file or "", node.source_line) if node else ("", 0)
+        return DiffCheckError(error.args[0], file=file, line=line, cause=error)
+
     def consistency(self) -> LocatedConsistencyReport:
         """Run consistency check and enrich with source locations from AST."""
-        report = self.system.engine.consistency()
+        try:
+            report = self.system.engine.consistency()
+        except DiffKeyError as e:
+            raise self._at_diff(e) from e
         return LocatedConsistencyReport(report=report, _node_index=self._build_node_index(), _engine=self.system.engine)
 
     def consistency_incremental(self, diffs_to_patch: set[str]) -> LocatedConsistencyReport:
@@ -339,7 +348,10 @@ class LazyLoadResult:
 
         engine = self.system.engine
         issues, warnings = engine._check_evidence()
-        diff_issues, diff_warnings = engine._check_diffs(diffs_to_patch)
+        try:
+            diff_issues, diff_warnings = engine._check_diffs(diffs_to_patch)
+        except DiffKeyError as e:
+            raise self._at_diff(e) from e
         issues.extend(diff_issues)
         warnings.extend(diff_warnings)
         report = ConsistencyReport(consistent=len(issues) == 0, issues=issues, warnings=warnings)
