@@ -12,6 +12,7 @@ from .lazy_loader import LazyLoadResult as LazyLoadResult
 from .lazy_loader import lazy_load_pltg as lazy_load_pltg
 from .loader import LOADER_EFFECTS as LOADER_EFFECTS
 from .loader import Context as Context
+from .loader import DiffCheckError as DiffCheckError
 from .loader import Loader as Loader
 from .loader import LoaderContext as LoaderContext
 from .loader import ModuleContext as ModuleContext

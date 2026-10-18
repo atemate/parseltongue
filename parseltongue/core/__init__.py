@@ -70,6 +70,7 @@ from .engine import (  # noqa: F401,  E402
     ConsistencyIssue,
     ConsistencyReport,
     ConsistencyWarning,
+    DiffKeyError,
     DiffResult,
     Fact,
 )

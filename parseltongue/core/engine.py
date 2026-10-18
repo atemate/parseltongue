@@ -289,6 +289,29 @@ class DiffResult:
         return "\n".join(lines)
 
 
+class DiffKeyError(KeyError):
+    """A ``KeyError`` raised checking a diff, carrying the ``diff`` it was raised in."""
+
+    def __init__(self, diff: str, replace: str | None, with_: str | None, cause: KeyError):
+        self.diff = diff
+        reason = cause.args[0] if cause.args else cause
+        super().__init__(f"diff '{diff}' (:replace {replace} :with {with_}): {reason}")
+
+
+def _eval_diffs(engine, names) -> list[DiffResult]:
+    """Evaluate the named diffs, ordered by name. A side resolves when the diff
+    is checked, so a name the env holds only at run time can be a side; one
+    that resolves to nothing raises the ``DiffKeyError`` naming the diff it is in."""
+    results = []
+    for name in names:
+        try:
+            results.append(engine.eval_diff(name))
+        except KeyError as e:
+            params = engine.diffs.get(name, {})
+            raise DiffKeyError(name, params.get("replace"), params.get("with"), e) from e
+    return sorted(results, key=lambda d: d.name)
+
+
 @dataclass
 class ConsistencyIssue:
     """A single consistency issue."""
@@ -1702,7 +1725,7 @@ class EngineImpl(Engine):
         warnings: list[ConsistencyWarning] = []
 
         names = diff_names if diff_names is not None else set(self.diffs)
-        all_diffs = sorted((self.eval_diff(n) for n in names), key=lambda d: d.name)
+        all_diffs = _eval_diffs(self, names)
         downstream_divergent = [d for d in all_diffs if not d.empty and not d.diff_contamination_only]
         diff_contamination = [d for d in all_diffs if d.diff_contamination_only]
         value_divergent = [d for d in all_diffs if d.values_diverge and d.empty]

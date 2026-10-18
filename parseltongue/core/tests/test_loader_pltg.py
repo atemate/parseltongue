@@ -75,6 +75,28 @@ class TestLoadPltgBasic(_TmpDirMixin, unittest.TestCase):
         self.assertEqual(system.evaluate(system.facts["result"].wff), 10)
 
 
+class TestConsistencyEffectDiffCheck(_TmpDirMixin, unittest.TestCase):
+
+    def test_unresolved_side_points_to_its_diff(self):
+        """Two diffs share the side ``a``; the error is at the one whose other side names nothing."""
+        path = self._write(
+            "main.pltg",
+            '(fact a 1 :origin "test")\n'
+            '(fact b 1 :origin "test")\n'
+            "(diff agree :replace a :with b)\n"
+            "(diff dangling :replace a :with nowhere)\n"
+            "(consistency)\n",
+        )
+        with self.assertRaises(PltgError) as cm:
+            load_pltg(path)
+        error = cm.exception
+        while isinstance(error.cause, PltgError):
+            error = error.cause
+        self.assertIsInstance(error, KeyError)  # still the diff check's KeyError
+        self.assertEqual(error.line, 4)
+        self.assertIn("diff 'dangling'", str(error))
+
+
 class TestImport(_TmpDirMixin, unittest.TestCase):
 
     def test_simple_import(self):

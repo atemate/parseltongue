@@ -29,6 +29,7 @@ from ..engine import (
     _corpus_counter_examples,
     _corpus_polarity,
     _corpus_reasons,
+    _eval_diffs,
     _evidence_quote_provenance,
     reverify_evidence,
 )
@@ -1763,7 +1764,7 @@ class Engine(EngineProtocol):
         warnings: list[ConsistencyWarning] = []
 
         names = diff_names if diff_names is not None else set(self.diffs)
-        all_diffs = sorted((self.eval_diff(n) for n in names), key=lambda d: d.name)
+        all_diffs = _eval_diffs(self, names)
         downstream_divergent = [d for d in all_diffs if not d.empty and not d.diff_contamination_only]
         diff_contamination = [d for d in all_diffs if d.diff_contamination_only]
         value_divergent = [d for d in all_diffs if d.values_diverge and d.empty]

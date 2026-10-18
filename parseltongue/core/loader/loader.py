@@ -69,10 +69,15 @@ class PltgError(Exception):
         from .lazy_loader import format_loc
 
         loc = format_loc(self.file, self.line)
-        parts = [f"{loc}: {super().__str__()}"]
+        parts = [f"{loc}: {Exception.__str__(self)}"]
         for frame in self.stack:
             parts.append(f"  imported from {format_loc(frame)}")
         return "\n".join(parts)
+
+
+class DiffCheckError(PltgError, KeyError):
+    """A diff check's ``KeyError`` at the source location of the diff it was raised in.
+    Still a ``KeyError``, as the diff check raises it."""
 
 
 class Context(ABC):
@@ -503,18 +508,16 @@ class Loader:
             try:
                 report = system.consistency()
             except KeyError as e:
-                # Resolve the failing symbol to its .pltg source location
-                sym = str(e).strip("'\"").removeprefix("Unknown symbol: ")
+                # Resolve the diff it was raised in to its .pltg source location
                 file, line = self._current.current_file, 0
-                for diff_name, diff_def in system.engine.diffs.items():
-                    if diff_def["replace"] == sym or diff_def["with"] == sym:
-                        mod = self._engine.names_to_modules.get(diff_name)
-                        if mod:
-                            file = self.modules_contexts[mod].current_file
-                        line = self._engine.names_to_lines.get(diff_name, 0)
-                        break
-                raise PltgError(
-                    str(e),
+                diff_name = getattr(e, "diff", None)
+                if diff_name is not None:
+                    mod = self._engine.names_to_modules.get(diff_name)
+                    if mod:
+                        file = self.modules_contexts[mod].current_file
+                    line = self._engine.names_to_lines.get(diff_name, 0)
+                raise (DiffCheckError if diff_name is not None else PltgError)(
+                    str(e.args[0] if e.args else e),
                     file=file,
                     line=line,
                     stack=list(self._file_stack),

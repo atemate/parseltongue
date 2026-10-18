@@ -53,6 +53,30 @@ class TestLazyLoadBasic(_TmpDirMixin, unittest.TestCase):
         self.assertIn("b", loaded_names)
 
 
+class TestLazyLoadDiffCheck(_TmpDirMixin, unittest.TestCase):
+
+    def test_unresolved_side_points_to_its_diff(self):
+        from ..loader import DiffCheckError
+
+        path = self._write(
+            "main.pltg",
+            '(fact a 1 :origin "test")\n'
+            '(fact b 1 :origin "test")\n'
+            "(diff agree :replace a :with b)\n"
+            "(diff dangling :replace a :with nowhere)\n",
+        )
+        result = lazy_load_pltg(path)
+        self.assertTrue(result.ok)  # sides resolve at the check, so the directive loads
+        for check in (result.consistency, lambda: result.consistency_incremental({"dangling"})):
+            with self.assertRaises(DiffCheckError) as cm:
+                check()
+            self.assertIsInstance(cm.exception, KeyError)  # still the diff check's KeyError
+            self.assertEqual((cm.exception.file, cm.exception.line), (path, 4))
+            message = "diff 'dangling' (:replace a :with nowhere): Unknown symbol: nowhere"
+            self.assertTrue(str(cm.exception).endswith(f":4:1: {message}"), str(cm.exception))
+            self.assertEqual(cm.exception.cause.diff, "dangling")
+
+
 class TestLazyLoadFaultTolerance(_TmpDirMixin, unittest.TestCase):
 
     def test_bad_derive_doesnt_block_others(self):
